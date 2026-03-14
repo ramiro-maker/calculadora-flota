@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Flota Náutica</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#1a1a1a;background:#f5f4f0;min-height:100vh}
+.app-header{background:#fff;border-bottom:1px solid #e0ded8;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.app-header h1{font-size:16px;font-weight:500}
+.app-header span{font-size:12px;color:#888}
+.app-body{max-width:1100px;margin:0 auto;padding:24px 16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #e0ded8;margin-bottom:1.5rem}
+.tab{padding:8px 18px;border-radius:8px 8px 0 0;border:1px solid transparent;cursor:pointer;color:#888;font-size:13px;background:none}
+.tab.active{border-color:#e0ded8;border-bottom-color:#f5f4f0;background:#f5f4f0;color:#1a1a1a;font-weight:500}
+.tab:hover:not(.active){color:#1a1a1a}
+.panel{display:none}.panel.active{display:block}
+.two-col{display:grid;grid-template-columns:200px 1fr;gap:1rem}
+.vessel-list{border:1px solid #e0ded8;border-radius:12px;overflow:hidden;background:#fff}
+.vessel-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0ded8;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.vessel-item:last-child{border-bottom:none}
+.vessel-item:hover{background:#f0f0ea}
+.vessel-item.selected{background:#dbeafe;color:#1d4ed8;font-weight:500}
+.vessel-item .del{opacity:0.4;font-size:11px;padding:2px 5px;border-radius:4px;background:none;border:none;cursor:pointer;color:inherit}
+.vessel-item .del:hover{opacity:1;background:#fee2e2;color:#dc2626}
+.add-btn{width:100%;padding:9px;text-align:center;cursor:pointer;font-size:12px;color:#1d4ed8;border-top:1px solid #e0ded8;background:#fff;border-left:none;border-right:none;border-bottom:none;border-radius:0 0 12px 12px}
+.add-btn:hover{background:#dbeafe}
+.form-card{background:#fff;border:1px solid #e0ded8;border-radius:12px;padding:1.25rem}
+.form-section{margin-bottom:1.25rem}
+.form-section h3{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid #e0ded8}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;color:#888}
+.field input,.field select{border:1px solid #d0cec8;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;color:#1a1a1a;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:#999}
+.service-tabs{display:flex;gap:6px;margin-bottom:1rem}
+.svc-tab{padding:5px 14px;border-radius:8px;border:1px solid #d0cec8;cursor:pointer;font-size:12px;background:none;color:#888}
+.svc-tab.active{background:#dbeafe;color:#1d4ed8;border-color:transparent;font-weight:500}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.metric{background:#f0f0ea;border-radius:8px;padding:.875rem}
+.metric .label{font-size:11px;color:#666;margin-bottom:4px}
+.metric .value{font-size:20px;font-weight:500}
+.metric.highlight{background:#dbeafe}.metric.highlight .label{color:#1d4ed8;opacity:.8}.metric.highlight .value{color:#1d4ed8}
+.metric.warn{background:#fef9c3}.metric.warn .label{color:#a16207;opacity:.8}.metric.warn .value{color:#a16207}
+.metric.good{background:#dcfce7}.metric.good .label{color:#166534;opacity:.8}.metric.good .value{color:#166534}
+.metric.bad{background:#fee2e2}.metric.bad .label{color:#dc2626;opacity:.8}.metric.bad .value{color:#dc2626}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem}
+.slider-row label{font-size:13px;color:#666;white-space:nowrap}
+.slider-row input[type=range]{flex:1;accent-color:#1d4ed8}
+.slider-row .val{font-size:14px;font-weight:500;min-width:80px;text-align:right}
+.sens-table{width:100%;border-collapse:collapse;font-size:13px}
+.sens-table th{text-align:right;padding:7px 12px;font-weight:500;font-size:11px;color:#888;border-bottom:1px solid #e0ded8}
+.sens-table th:first-child{text-align:left}
+.sens-table td{text-align:right;padding:7px 12px;border-bottom:1px solid #e0ded8}
+.sens-table td:first-child{text-align:left;font-weight:500}
+.sens-table tr.eq-row td{background:#fef9c3;color:#a16207;font-weight:500}
+.sens-table tr.selected-row td{background:#dbeafe;color:#1d4ed8;font-weight:500}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px}
+.cmp-table th{text-align:right;padding:8px 10px;font-weight:500;font-size:11px;color:#888;border-bottom:1px solid #e0ded8;white-space:nowrap}
+.cmp-table th:first-child{text-align:left}
+.cmp-table td{text-align:right;padding:7px 10px;border-bottom:1px solid #e0ded8}
+.cmp-table td:first-child{text-align:left;font-weight:500}
+.cmp-table tr:hover td{background:#f0f0ea}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:500}
+.badge-good{background:#dcfce7;color:#166534}
+.badge-warn{background:#fef9c3;color:#a16207}
+.badge-bad{background:#fee2e2;color:#dc2626}
+.vessel-name-input{border:none;border-bottom:1px solid #d0cec8;border-radius:0;padding:4px 0;font-size:16px;font-weight:500;background:transparent;color:#1a1a1a;width:100%;margin-bottom:1rem}
+.vessel-name-input:focus{outline:none;border-bottom-color:#999}
+.section-title{font-size:13px;font-weight:500;margin-bottom:.75rem}
+.insight{background:#f0f0ea;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;padding:.75rem 1rem;font-size:13px;color:#555;margin-bottom:1.25rem}
+.insight span{color:#1a1a1a;font-weight:500}
+.export-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+.exp-btn{padding:6px 14px;font-size:12px;border:1px solid #d0cec8;border-radius:8px;cursor:pointer;background:#fff;color:#555;display:inline-flex;align-items:center;gap:5px}
+.exp-btn:hover{background:#f0f0ea;color:#1a1a1a}
+.exp-btn svg{width:13px;height:13px;flex-shrink:0}
+.toolbar{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.25rem}
+.toolbar .field{min-width:160px}
+.toast{position:fixed;bottom:20px;right:20px;background:#fff;border:1px solid #d0cec8;border-radius:8px;padding:10px 16px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.toast.show{opacity:1}
+@media(max-width:600px){.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Calculadora de Flota Náutica</h1>
+  <span>Costo por pasajero · Punto de equilibrio · Ingreso marginal</span>
+</div>
+
+<div class="app-body">
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('flota',event)">Flota</button>
+  <button class="tab" onclick="showTab('analisis',event)">Análisis</button>
+  <button class="tab" onclick="showTab('comparar',event)">Comparar</button>
+</div>
+
+<div id="tab-flota" class="panel active">
+  <div class="two-col">
+    <div>
+      <div class="vessel-list" id="vessel-list"></div>
+      <button class="add-btn" onclick="addVessel()">+ Agregar embarcación</button>
+    </div>
+    <div id="vessel-editor"></div>
+  </div>
+</div>
+
+<div id="tab-analisis" class="panel">
+  <div class="toolbar">
+    <div class="field"><label>Embarcación</label><select id="ana-vessel" onchange="renderAnalisis()"></select></div>
+    <div class="field"><label>Servicio</label><select id="ana-service" onchange="renderAnalisis()"><option value="paseo">Paseo turístico</option><option value="charter">Charter privado</option></select></div>
+    <button class="exp-btn" onclick="exportAnalisis()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/></svg>
+      Exportar CSV
+    </button>
+  </div>
+  <div id="analisis-content"></div>
+</div>
+
+<div id="tab-comparar" class="panel">
+  <div class="toolbar">
+    <div class="field"><label>Servicio</label><select id="cmp-service" onchange="renderComparar()"><option value="paseo">Paseo turístico</option><option value="charter">Charter privado</option></select></div>
+    <div class="field"><label>Ocupación</label>
+      <select id="cmp-occ" onchange="renderComparar()">
+        <option value="50">50%</option><option value="70">70%</option><option value="80" selected>80%</option><option value="100">100%</option>
+      </select>
+    </div>
+    <button class="exp-btn" onclick="exportComparar()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/></svg>
+      Exportar CSV
+    </button>
+    <button class="exp-btn" onclick="exportTodaLaFlota()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/></svg>
+      Exportar flota completa
+    </button>
+  </div>
+  <div id="comparar-content"></div>
+</div>
+
+</div>
+
+<div class="toast" id="toast">Archivo descargado</div>
+
+<script>
+const fmt=n=>isNaN(n)||!isFinite(n)?'—':'$'+Math.round(n).toLocaleString('es-AR');
+const fmtN=n=>isNaN(n)||!isFinite(n)?'—':Math.round(n).toLocaleString('es-AR');
+const fmtPct=n=>isNaN(n)||!isFinite(n)?'—':Math.round(n)+'%';
+const raw=n=>isNaN(n)||!isFinite(n)?'':Math.round(n);
+
+const SVC_KEYS=['combustible','tripulacion','amortizacion','seguro','tasas','otros'];
+const SVC_LABELS=['Combustible','Tripulación','Amortización/mant.','Seguro','Tasas portuarias','Otros fijos'];
+
+function defaultSvc(){return{combustible:30000,tripulacion:40000,amortizacion:20000,seguro:5000,tasas:3000,otros:2000,cv:500,ticket:8000,occ:80}}
+
+let vessels=[
+  {id:1,name:'Embarcación 01',cap:30,paseo:defaultSvc(),charter:{...defaultSvc(),ticket:120000,occ:100,cv:800}},
+  {id:2,name:'Embarcación 02',cap:20,paseo:{...defaultSvc(),combustible:20000,tripulacion:25000,amortizacion:12000},charter:{...defaultSvc(),ticket:80000,occ:100}},
+  {id:3,name:'Embarcación 03',cap:50,paseo:{...defaultSvc(),combustible:45000,tripulacion:60000,amortizacion:30000,ticket:7500},charter:{...defaultSvc(),ticket:200000,occ:100}},
+];
+let nextId=4,selId=1,selSvc='paseo';
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+function downloadCSV(filename,rows){
+  const bom='\uFEFF';
+  const csv=bom+rows.map(r=>r.map(c=>{const s=String(c===null||c===undefined?'':c);return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+  showToast('CSV descargado: '+filename);
+}
+
+function exportAnalisis(){
+  const vid=parseInt(document.getElementById('ana-vessel').value)||vessels[0].id;
+  const svc=document.getElementById('ana-service').value;
+  const v=getV(vid);const c=calcSvc(v,svc);
+  const svcLabel=svc==='paseo'?'Paseo turístico':'Charter privado';
+  const rows=[
+    ['Reporte de análisis — '+v.name+' — '+svcLabel],['Fecha',new Date().toLocaleDateString('es-AR')],[],
+    ['COSTOS FIJOS POR VIAJE'],
+    ...SVC_KEYS.map((k,i)=>[SVC_LABELS[i],raw(v[svc][k])]),
+    ['TOTAL costos fijos',raw(c.cf)],[],
+    ['Costo variable / pasajero',raw(c.cv)],
+    ['Precio ticket',raw(c.ticket)],
+    ['Ingreso marginal / pax extra (sobre equilibrio)',raw(c.margin)],
+    ['Capacidad máxima',v.cap],[],
+    ['PUNTO DE EQUILIBRIO'],
+    ['Pasajeros mínimos',raw(c.beq)],
+    ['% de capacidad',raw(c.beqPct)+'%'],[],
+    ['SENSIBILIDAD POR OCUPACIÓN'],
+    ['Ocupación %','Pasajeros','Costo/pax','Margen/pax','Resultado viaje'],
+    ...[25,50,60,70,75,80,90,100].map(pct=>{
+      const n=Math.max(1,Math.round(v.cap*pct/100));
+      const cp=c.cf/n+c.cv;
+      return[pct+'%',n,raw(cp),raw(c.ticket-cp),raw((c.ticket-c.cv)*n-c.cf)];
+    })
+  ];
+  downloadCSV(v.name.replace(/\s+/g,'_')+'_analisis.csv',rows);
+}
+
+function exportComparar(){
+  const svc=document.getElementById('cmp-service').value;
+  const occ=parseInt(document.getElementById('cmp-occ').value)||80;
+  const svcLabel=svc==='paseo'?'Paseo turístico':'Charter privado';
+  const header=['Embarcación','Capacidad','CF / viaje','CV / pax','Ticket','Equilibrio (pax)','Equilibrio (%)','Costo/pax @'+occ+'%','Margen/pax @'+occ+'%','Resultado @'+occ+'%','Ingreso marginal'];
+  const dataRows=vessels.map(v=>{
+    const c=calcSvc(v,svc);const pax=Math.max(1,Math.round(v.cap*occ/100));const cpax=c.cf/pax+c.cv;
+    return[v.name,v.cap,raw(c.cf),raw(c.cv),raw(c.ticket),raw(c.beq),raw(c.beqPct)+'%',raw(cpax),raw(c.ticket-cpax),raw((c.ticket-c.cv)*pax-c.cf),raw(c.margin)];
+  });
+  downloadCSV('comparativa_flota_'+svcLabel.replace(/\s+/g,'_')+'.csv',[['Comparativa de flota — '+svcLabel+' — Ocupación '+occ+'%'],['Fecha',new Date().toLocaleDateString('es-AR')],[],header,...dataRows]);
+}
+
+function exportTodaLaFlota(){
+  const svcs=[{key:'paseo',label:'Paseo turístico'},{key:'charter',label:'Charter privado'}];
+  const header=['Embarcación','Capacidad','Servicio',...SVC_LABELS,'CV/pax','Ticket','Ocup. típica %','CF total','Equilibrio pax','Equilibrio %','Costo/pax (ocup. típica)','Margen/pax','Ing. marginal'];
+  const rows=[['Datos completos de flota'],['Fecha',new Date().toLocaleDateString('es-AR')],[],header];
+  vessels.forEach(v=>{
+    svcs.forEach(({key,label})=>{
+      const s=v[key];const c=calcSvc(v,key);const pax=Math.max(1,Math.round(v.cap*(s.occ||80)/100));const cpax=c.cf/pax+c.cv;
+      rows.push([v.name,v.cap,label,...SVC_KEYS.map(k=>raw(s[k]||0)),raw(s.cv),raw(s.ticket),s.occ||80,raw(c.cf),raw(c.beq),raw(c.beqPct)+'%',raw(cpax),raw(c.ticket-cpax),raw(c.margin)]);
+    });
+  });
+  downloadCSV('flota_completa.csv',rows);
+}
+
+function addVessel(){
+  vessels.push({id:nextId,name:'Embarcación '+String(nextId).padStart(2,'0'),cap:30,paseo:defaultSvc(),charter:{...defaultSvc(),ticket:100000,occ:100}});
+  selId=nextId;nextId++;renderFlota();
+}
+function delVessel(id){if(vessels.length<=1)return;vessels=vessels.filter(v=>v.id!==id);if(selId===id)selId=vessels[0].id;renderFlota();}
+function selectVessel(id){selId=id;renderFlota();}
+function selectSvc(s){selSvc=s;renderEditor();}
+function getV(id){return vessels.find(v=>v.id===id)||vessels[0];}
+
+function updateField(id,svc,key,val){
+  const v=getV(id);
+  if(key==='name')v.name=val;
+  else if(key==='cap')v.cap=parseFloat(val)||0;
+  else v[svc][key]=parseFloat(val)||0;
+  refreshSelects();
+  if(document.getElementById('tab-comparar').classList.contains('active'))renderComparar();
+  if(document.getElementById('tab-analisis').classList.contains('active'))renderAnalisis();
+}
+
+function calcSvc(v,svc){
+  const s=v[svc];const cf=SVC_KEYS.reduce((a,k)=>a+(s[k]||0),0);
+  const cv=s.cv||0,ticket=s.ticket||0,cap=v.cap||1;const margin=ticket-cv;
+  const beq=margin>0?Math.ceil(cf/margin):Infinity;
+  return{cf,cv,ticket,cap,margin,beq,beqPct:beq/cap*100,occ:s.occ};
+}
+
+function renderFlota(){
+  document.getElementById('vessel-list').innerHTML=vessels.map(v=>`
+    <div class="vessel-item${v.id===selId?' selected':''}" onclick="selectVessel(${v.id})">
+      <span>${v.name}</span>
+      <button class="del" onclick="event.stopPropagation();delVessel(${v.id})">✕</button>
+    </div>`).join('');
+  renderEditor();refreshSelects();
+}
+
+function renderEditor(){
+  const v=getV(selId);const ed=document.getElementById('vessel-editor');
+  if(!v){ed.innerHTML='<p style="color:#888;padding:2rem;text-align:center">Seleccioná una embarcación</p>';return;}
+  const s=v[selSvc];
+  ed.innerHTML=`
+  <div class="form-card">
+    <input class="vessel-name-input" value="${v.name}" oninput="updateField(${v.id},'','name',this.value)" placeholder="Nombre embarcación">
+    <div class="form-row" style="margin-bottom:1rem">
+      <div class="field"><label>Capacidad máx. (pax)</label><input type="number" value="${v.cap}" oninput="updateField(${v.id},'','cap',this.value)" min="1"></div>
+    </div>
+    <div class="service-tabs">
+      <button class="svc-tab${selSvc==='paseo'?' active':''}" onclick="selectSvc('paseo')">Paseo turístico</button>
+      <button class="svc-tab${selSvc==='charter'?' active':''}" onclick="selectSvc('charter')">Charter privado</button>
+    </div>
+    <div class="form-section">
+      <h3>Costos fijos por viaje</h3>
+      <div class="form-row">
+        ${SVC_KEYS.map((k,i)=>`<div class="field"><label>${SVC_LABELS[i]}</label><input type="number" value="${s[k]||0}" oninput="updateField(${v.id},'${selSvc}','${k}',this.value)"></div>`).join('')}
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>Costos variables y precio</h3>
+      <div class="form-row">
+        <div class="field"><label>Costo variable / pax</label><input type="number" value="${s.cv||0}" oninput="updateField(${v.id},'${selSvc}','cv',this.value)"></div>
+        <div class="field"><label>Precio del ticket / pax</label><input type="number" value="${s.ticket||0}" oninput="updateField(${v.id},'${selSvc}','ticket',this.value)"></div>
+        <div class="field"><label>Ocupación típica (%)</label><input type="number" value="${s.occ||80}" min="1" max="100" oninput="updateField(${v.id},'${selSvc}','occ',this.value)"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function refreshSelects(){
+  const sel=document.getElementById('ana-vessel');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML=vessels.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+  if(vessels.find(v=>v.id==cur))sel.value=cur;
+}
+
+function renderAnalisis(){
+  const vid=parseInt(document.getElementById('ana-vessel').value)||vessels[0].id;
+  const svc=document.getElementById('ana-service').value;
+  const v=getV(vid);const c=calcSvc(v,svc);
+  const occSlider=document.getElementById('ana-occ-val');
+  const occVal=occSlider?parseInt(occSlider.value):Math.round(c.occ);
+  const pax=Math.max(1,Math.round(v.cap*occVal/100));
+  const cpax=c.cf/pax+c.cv;const margen=c.ticket-cpax;
+  const resultado=(c.ticket-c.cv)*pax-c.cf;
+  const rows=[25,50,60,70,75,80,90,100].map(pct=>{
+    const n=Math.max(1,Math.round(v.cap*pct/100));const cp=c.cf/n+c.cv;
+    return{pct,n,cp,mg:c.ticket-cp,res:(c.ticket-c.cv)*n-c.cf,isEq:Math.abs(pct-Math.round(c.beqPct))<=5,isSel:pct===occVal};
+  });
+  const beqClass=c.beqPct<=60?'good':c.beqPct<=80?'warn':'bad';
+  const margenClass=margen>0?'good':margen===0?'warn':'bad';
+  document.getElementById('analisis-content').innerHTML=`
+  <div class="insight">Ingreso marginal por cada pasajero extra (sobre equilibrio): <span>${fmt(c.margin)}</span></div>
+  <div class="slider-row">
+    <label>Ocupación</label>
+    <input type="range" min="1" max="100" step="1" value="${occVal}" id="ana-occ-val" oninput="this.nextElementSibling.textContent=this.value+'%  ('+Math.round(${v.cap}*this.value/100)+' pax)';renderAnalisisLive(${vid},'${svc}',this.value)">
+    <span class="val">${occVal}%&nbsp;&nbsp;(${pax} pax)</span>
+  </div>
+  <div class="metric-grid">
+    <div class="metric"><div class="label">Costos fijos / viaje</div><div class="value">${fmt(c.cf)}</div></div>
+    <div class="metric"><div class="label">Costo variable / pax</div><div class="value">${fmt(c.cv)}</div></div>
+    <div class="metric"><div class="label">Costo total / pax (${occVal}% ocup.)</div><div class="value">${fmt(cpax)}</div></div>
+    <div class="metric ${margenClass}"><div class="label">Margen / pax</div><div class="value">${fmt(margen)}</div></div>
+    <div class="metric ${beqClass}"><div class="label">Punto de equilibrio</div><div class="value">${fmtN(c.beq)} pax</div></div>
+    <div class="metric ${beqClass}"><div class="label">Equilibrio (% capacidad)</div><div class="value">${fmtPct(c.beqPct)}</div></div>
+    <div class="metric ${margen>0?'good':'bad'}"><div class="label">Resultado del viaje</div><div class="value">${fmt(resultado)}</div></div>
+    <div class="metric highlight"><div class="label">Ingreso marginal / pax extra</div><div class="value">${fmt(c.margin)}</div></div>
+  </div>
+  <div class="section-title">Sensibilidad por nivel de ocupación</div>
+  <table class="sens-table">
+    <thead><tr><th>Ocupación</th><th>Pax</th><th>Costo / pax</th><th>Margen / pax</th><th>Resultado viaje</th></tr></thead>
+    <tbody id="sens-tbody">${rows.map(r=>`<tr class="${r.isEq?'eq-row':r.isSel?'selected-row':''}"><td>${r.pct}%</td><td>${r.n}</td><td>${fmt(r.cp)}</td><td>${fmt(r.mg)}</td><td>${fmt(r.res)}</td></tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function renderAnalisisLive(vid,svc,occVal){
+  const v=getV(vid);const c=calcSvc(v,svc);
+  const pax=Math.max(1,Math.round(v.cap*occVal/100));
+  const cpax=c.cf/pax+c.cv;const margen=c.ticket-cpax;
+  const rows=[25,50,60,70,75,80,90,100].map(pct=>{
+    const n=Math.max(1,Math.round(v.cap*pct/100));const cp=c.cf/n+c.cv;
+    return{pct,n,cp,mg:c.ticket-cp,res:(c.ticket-c.cv)*n-c.cf,isEq:Math.abs(pct-Math.round(c.beqPct))<=5,isSel:pct==occVal};
+  });
+  const mc=margen>0?'good':margen===0?'warn':'bad';
+  const cards=document.querySelectorAll('#analisis-content .metric');
+  if(cards.length>=7){
+    cards[2].querySelector('.label').textContent='Costo total / pax ('+occVal+'% ocup.)';
+    cards[2].querySelector('.value').textContent=fmt(cpax);
+    cards[3].className='metric '+mc;cards[3].querySelector('.value').textContent=fmt(margen);
+    cards[6].className='metric '+(margen>0?'good':'bad');cards[6].querySelector('.value').textContent=fmt((c.ticket-c.cv)*pax-c.cf);
+  }
+  const tb=document.getElementById('sens-tbody');
+  if(tb) tb.innerHTML=rows.map(r=>`<tr class="${r.isEq?'eq-row':r.isSel?'selected-row':''}"><td>${r.pct}%</td><td>${r.n}</td><td>${fmt(r.cp)}</td><td>${fmt(r.mg)}</td><td>${fmt(r.res)}</td></tr>`).join('');
+}
+
+function renderComparar(){
+  const svc=document.getElementById('cmp-service').value;
+  const occ=parseInt(document.getElementById('cmp-occ').value)||80;
+  const rows=vessels.map(v=>{
+    const c=calcSvc(v,svc);const pax=Math.max(1,Math.round(v.cap*occ/100));
+    const cpax=c.cf/pax+c.cv;const margen=c.ticket-cpax;
+    return{v,c,cpax,margen,resultado:(c.ticket-c.cv)*pax-c.cf,beqBadge:c.beqPct<=60?'badge-good':c.beqPct<=80?'badge-warn':'badge-bad',margenBadge:margen>0?'badge-good':margen===0?'badge-warn':'badge-bad'};
+  });
+  document.getElementById('comparar-content').innerHTML=`
+  <div style="overflow-x:auto">
+  <table class="cmp-table">
+    <thead><tr><th style="text-align:left">Embarcación</th><th>Cap.</th><th>CF/viaje</th><th>CV/pax</th><th>Ticket</th><th>Punto equil.</th><th>Costo/pax @${occ}%</th><th>Margen/pax @${occ}%</th><th>Resultado @${occ}%</th><th>Ing. marginal</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r.v.name}</td><td>${r.v.cap}</td><td>${fmt(r.c.cf)}</td><td>${fmt(r.c.cv)}</td><td>${fmt(r.c.ticket)}</td><td><span class="badge ${r.beqBadge}">${fmtN(r.c.beq)} pax (${fmtPct(r.c.beqPct)})</span></td><td>${fmt(r.cpax)}</td><td><span class="badge ${r.margenBadge}">${fmt(r.margen)}</span></td><td>${fmt(r.resultado)}</td><td>${fmt(r.c.margin)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function showTab(t,e){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if(e)e.target.classList.add('active');
+  if(t==='analisis'){refreshSelects();renderAnalisis();}
+  if(t==='comparar')renderComparar();
+}
+
+renderFlota();
+</script>
+</body>
+</html>
