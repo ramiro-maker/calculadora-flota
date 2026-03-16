@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Flota Náutica</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#1a1a1a;background:#f5f4f0;min-height:100vh}
+.app-header{background:#fff;border-bottom:1px solid #e0ded8;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.app-header h1{font-size:16px;font-weight:500}
+.app-header span{font-size:12px;color:#888}
+.app-body{max-width:1200px;margin:0 auto;padding:24px 16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #e0ded8;margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:8px 18px;border-radius:8px 8px 0 0;border:1px solid transparent;cursor:pointer;color:#888;font-size:13px;background:none}
+.tab.active{border-color:#e0ded8;border-bottom-color:#f5f4f0;background:#f5f4f0;color:#1a1a1a;font-weight:500}
+.tab:hover:not(.active){color:#1a1a1a}
+.panel{display:none}.panel.active{display:block}
+
+/* TRIPULACIÓN */
+.crew-layout{display:grid;grid-template-columns:1fr 340px;gap:1.5rem}
+.card{background:#fff;border:1px solid #e0ded8;border-radius:12px;padding:1.25rem}
+.card-title{font-size:13px;font-weight:500;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.config-row{display:flex;align-items:center;gap:12px;background:#f5f4f0;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.25rem}
+.config-row label{font-size:13px;color:#555;flex:1}
+.config-row input{width:90px;border:1px solid #d0cec8;border-radius:8px;padding:5px 8px;font-size:13px;text-align:right}
+.config-row .hint{font-size:11px;color:#aaa;white-space:nowrap}
+.import-zone{border:2px dashed #d0cec8;border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:1rem}
+.import-zone:hover{border-color:#93c5fd;background:#f0f8ff}
+.import-zone.drag{border-color:#1d4ed8;background:#dbeafe}
+.import-zone .iz-icon{font-size:28px;margin-bottom:.5rem;color:#bbb}
+.import-zone p{font-size:13px;color:#888;margin-bottom:.25rem}
+.import-zone span{font-size:11px;color:#bbb}
+.import-zone input[type=file]{display:none}
+.template-btn{font-size:12px;color:#1d4ed8;background:none;border:1px solid #93c5fd;border-radius:8px;padding:5px 12px;cursor:pointer;width:100%}
+.template-btn:hover{background:#dbeafe}
+.crew-table-wrap{overflow-x:auto}
+.crew-table{width:100%;border-collapse:collapse;font-size:13px}
+.crew-table th{text-align:left;padding:7px 10px;font-size:11px;font-weight:500;color:#888;border-bottom:1px solid #e0ded8;white-space:nowrap}
+.crew-table th:last-child{text-align:right}
+.crew-table td{padding:7px 10px;border-bottom:1px solid #f0f0ea;vertical-align:middle}
+.crew-table td:last-child{text-align:right}
+.crew-table tr:last-child td{border-bottom:none}
+.crew-table tr:hover td{background:#fafaf8}
+.crew-table input{border:1px solid #d0cec8;border-radius:6px;padding:4px 7px;font-size:12px;background:#fff;color:#1a1a1a}
+.crew-table input.name-cell{width:160px}
+.crew-table input.num-cell{width:120px;text-align:right}
+.crew-table select.vessel-cell{border:1px solid #d0cec8;border-radius:6px;padding:4px 7px;font-size:12px;background:#fff;color:#1a1a1a;width:180px}
+.crew-rate{font-size:12px;font-weight:500;color:#1d4ed8;white-space:nowrap}
+.del-crew{opacity:0.35;font-size:11px;padding:2px 5px;border-radius:4px;background:none;border:none;cursor:pointer}
+.badge-franquero{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500;background:#fef3c7;color:#92400e;white-space:nowrap}
+.franquero-note{font-size:11px;color:#92400e;background:#fef9c3;border-radius:6px;padding:4px 8px;margin-top:4px}
+.crew-table select.tipo-cell{border:1px solid #d0cec8;border-radius:6px;padding:4px 7px;font-size:12px;background:#fff;color:#1a1a1a;width:110px}
+.crew-table tr.is-franquero td{background:#fffbeb}
+.del-crew:hover{opacity:1;background:#fee2e2;color:#dc2626}
+.add-crew-btn{font-size:12px;color:#1d4ed8;background:none;border:1px dashed #93c5fd;border-radius:8px;padding:6px 14px;cursor:pointer;margin-top:.75rem}
+.add-crew-btn:hover{background:#dbeafe}
+.vessel-crew-list{display:flex;flex-direction:column;gap:8px}
+.vcrew-item{background:#f5f4f0;border-radius:8px;padding:.75rem 1rem}
+.vcrew-name{font-weight:500;font-size:13px;margin-bottom:.5rem;color:#1a1a1a;display:flex;justify-content:space-between}
+.vcrew-name span{font-weight:400;font-size:11px;color:#888}
+.vcrew-members{display:flex;flex-direction:column;gap:3px}
+.vcrew-member{display:flex;justify-content:space-between;font-size:12px;color:#555}
+.vcrew-member .rate{color:#1d4ed8;font-weight:500}
+.vcrew-total{display:flex;justify-content:space-between;font-size:12px;font-weight:500;margin-top:.5rem;padding-top:.5rem;border-top:1px solid #e0ded8}
+.vcrew-empty{font-size:12px;color:#bbb;font-style:italic}
+
+/* FLOTA */
+.flota-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem}
+.vessel-list{border:1px solid #e0ded8;border-radius:12px;overflow:hidden;background:#fff}
+.vessel-item{padding:8px 14px;cursor:pointer;border-bottom:1px solid #e0ded8;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.vessel-item:last-child{border-bottom:none}
+.vessel-item:hover{background:#f0f0ea}
+.vessel-item.selected{background:#dbeafe;color:#1d4ed8;font-weight:500}
+.vessel-item .vcap{font-size:11px;opacity:.7;margin-left:4px}
+.vessel-item .del{opacity:0.35;font-size:11px;padding:2px 5px;border-radius:4px;background:none;border:none;cursor:pointer;color:inherit}
+.vessel-item .del:hover{opacity:1;background:#fee2e2;color:#dc2626}
+.add-btn{width:100%;padding:9px;text-align:center;cursor:pointer;font-size:12px;color:#1d4ed8;border-top:1px solid #e0ded8;background:#fff;border-left:none;border-right:none;border-bottom:none;border-radius:0 0 12px 12px}
+.add-btn:hover{background:#dbeafe}
+.form-card{background:#fff;border:1px solid #e0ded8;border-radius:12px;padding:1.25rem}
+.sec{margin-bottom:1.25rem}
+.sec h3{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid #e0ded8;display:flex;justify-content:space-between;align-items:center}
+.sec h3 .sec-total{font-size:12px;color:#1a1a1a;font-weight:500;text-transform:none;letter-spacing:0}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:11px;color:#888}
+.f input,.f select{border:1px solid #d0cec8;border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;color:#1a1a1a;width:100%}
+.f input:focus,.f select:focus{outline:none;border-color:#999}
+.f input.computed{background:#f0f8ff;border-color:#93c5fd;color:#1d4ed8;font-weight:500}
+.f input.cv-computed{background:#f0fdf4;border-color:#86efac;color:#166534;font-weight:500}
+.f .hint{font-size:10px;color:#aaa;margin-top:2px}
+.f .hint.blue{color:#93c5fd}
+.f .hint.green{color:#86efac}
+.name-input{border:none;border-bottom:1px solid #d0cec8;border-radius:0;padding:4px 0;font-size:16px;font-weight:500;background:transparent;color:#1a1a1a;width:100%;margin-bottom:.5rem}
+.name-input:focus{outline:none;border-bottom-color:#999}
+.trip-list{display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem}
+.trip-pill{display:flex;align-items:center;gap:8px;background:#f5f4f0;border:1px solid #e0ded8;border-radius:8px;padding:7px 12px;cursor:pointer}
+.trip-pill:hover{border-color:#aaa}
+.trip-pill.selected{border-color:#1d4ed8;background:#dbeafe}
+.trip-pill .tp-name{flex:1;font-size:13px;font-weight:500}
+.trip-pill .tp-meta{font-size:11px;color:#888}
+.trip-pill.selected .tp-meta{color:#1d4ed8}
+.trip-pill .del-t{opacity:0.3;font-size:11px;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
+.trip-pill .del-t:hover{opacity:1;background:#fee2e2;color:#dc2626}
+.add-trip{font-size:12px;color:#1d4ed8;background:none;border:1px dashed #93c5fd;border-radius:8px;padding:6px 12px;cursor:pointer;width:100%}
+.add-trip:hover{background:#dbeafe}
+.trip-editor{border-top:1px solid #e0ded8;padding-top:1.25rem;margin-top:.75rem}
+.te-head{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.te-name{border:none;border-bottom:1px solid #d0cec8;border-radius:0;padding:3px 0;font-size:15px;font-weight:500;background:transparent;color:#1a1a1a;flex:1}
+.te-name:focus{outline:none;border-bottom-color:#999}
+.te-type{border:1px solid #d0cec8;border-radius:8px;padding:4px 8px;font-size:12px;background:#fff;color:#1a1a1a}
+.crew-assign-box{background:#f0f8ff;border:1px solid #bfdbfe;border-radius:10px;padding:.875rem 1rem;margin-bottom:.75rem}
+.crew-assign-title{font-size:11px;font-weight:500;color:#1d4ed8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.625rem;display:flex;justify-content:space-between}
+.crew-assign-title .ca-total{font-size:12px;background:#dbeafe;border-radius:6px;padding:2px 8px}
+.crew-check-list{display:flex;flex-direction:column;gap:5px}
+.crew-check-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.crew-check-item input[type=checkbox]{width:15px;height:15px;accent-color:#1d4ed8;flex-shrink:0}
+.crew-check-item .cc-name{flex:1}
+.crew-check-item .cc-rate{font-size:12px;color:#1d4ed8;white-space:nowrap}
+.crew-assign-empty{font-size:12px;color:#888;font-style:italic}
+.crew-assign-note{font-size:11px;color:#888;margin-top:.5rem}
+.cv-subsec{background:#f9fdf5;border:1px solid #d1fae5;border-radius:10px;padding:.875rem 1rem;margin-bottom:.75rem}
+.cv-subsec-title{font-size:11px;font-weight:500;color:#166534;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.625rem;display:flex;justify-content:space-between;align-items:center}
+.cv-subsec-title .subtotal{font-size:12px;color:#166534;background:#dcfce7;border-radius:6px;padding:2px 8px}
+.breakdown{background:#f9f9f7;border:1px solid #e0ded8;border-radius:10px;padding:1rem;margin-top:.75rem}
+.breakdown-title{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.bk-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid #eee;font-size:13px}
+.bk-row:last-child{border-bottom:none;padding-top:8px}
+.bk-label{color:#555}
+.bk-formula{font-size:11px;color:#bbb;margin-left:8px;flex:1;text-align:right;margin-right:12px}
+.bk-val{font-weight:500;color:#1a1a1a;white-space:nowrap}
+.bk-row.cf-total .bk-val{color:#1d4ed8;font-size:15px}
+.bk-row.cv-sub{padding-left:12px;font-size:12px}
+.bk-row.cv-sub .bk-label{color:#4b7a5a}
+.bk-row.cv-total .bk-val{color:#166534;font-size:15px}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.metric{background:#f0f0ea;border-radius:8px;padding:.875rem}
+.metric .label{font-size:11px;color:#666;margin-bottom:4px}
+.metric .value{font-size:20px;font-weight:500}
+.metric.hi{background:#dbeafe}.metric.hi .label{color:#1d4ed8;opacity:.8}.metric.hi .value{color:#1d4ed8}
+.metric.wa{background:#fef9c3}.metric.wa .label{color:#a16207;opacity:.8}.metric.wa .value{color:#a16207}
+.metric.go{background:#dcfce7}.metric.go .label{color:#166534;opacity:.8}.metric.go .value{color:#166534}
+.metric.ba{background:#fee2e2}.metric.ba .label{color:#dc2626;opacity:.8}.metric.ba .value{color:#dc2626}
+.sens-table{width:100%;border-collapse:collapse;font-size:13px}
+.sens-table th{text-align:right;padding:7px 12px;font-weight:500;font-size:11px;color:#888;border-bottom:1px solid #e0ded8}
+.sens-table th:first-child{text-align:left}
+.sens-table td{text-align:right;padding:7px 12px;border-bottom:1px solid #e0ded8}
+.sens-table td:first-child{text-align:left;font-weight:500}
+.sens-table tr.eq td{background:#fef9c3;color:#a16207;font-weight:500}
+.sens-table tr.sl td{background:#dbeafe;color:#1d4ed8;font-weight:500}
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px}
+.cmp-table th{text-align:right;padding:8px 10px;font-weight:500;font-size:11px;color:#888;border-bottom:1px solid #e0ded8;white-space:nowrap}
+.cmp-table th:first-child,.cmp-table th:nth-child(2){text-align:left}
+.cmp-table td{text-align:right;padding:7px 10px;border-bottom:1px solid #e0ded8}
+.cmp-table td:first-child,.cmp-table td:nth-child(2){text-align:left}
+.cmp-table tr:hover td{background:#f0f0ea}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:500}
+.bg{background:#dcfce7;color:#166534}.bw{background:#fef9c3;color:#a16207}.bb{background:#fee2e2;color:#dc2626}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem}
+.slider-row label{font-size:13px;color:#666;white-space:nowrap}
+.slider-row input[type=range]{flex:1;accent-color:#1d4ed8}
+.slider-row .val{font-size:14px;font-weight:500;min-width:80px;text-align:right}
+.insight{background:#f0f0ea;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;padding:.75rem 1rem;font-size:13px;color:#555;margin-bottom:1rem}
+.insight span{color:#1a1a1a;font-weight:500}
+.toolbar{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.25rem}
+.toolbar .f{min-width:150px}
+.exp-btn{padding:6px 14px;font-size:12px;border:1px solid #d0cec8;border-radius:8px;cursor:pointer;background:#fff;color:#555;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.exp-btn:hover{background:#f0f0ea;color:#1a1a1a}
+.exp-btn svg{width:13px;height:13px;flex-shrink:0}
+.sec-title{font-size:13px;font-weight:500;margin-bottom:.75rem}
+.toast{position:fixed;bottom:20px;right:20px;background:#fff;border:1px solid #d0cec8;border-radius:8px;padding:10px 16px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+.empty{color:#888;font-size:13px;padding:2rem;text-align:center;background:#f9f9f7;border-radius:8px;border:1px dashed #d0cec8}
+.import-result{font-size:12px;padding:.5rem .75rem;border-radius:8px;margin-bottom:.75rem}
+.import-result.ok{background:#dcfce7;color:#166534}
+.import-result.err{background:#fee2e2;color:#dc2626}
+@media(max-width:800px){.crew-layout{grid-template-columns:1fr}.flota-layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>Calculadora de Flota Náutica</h1>
+  <span>Sturla Viajes · 15 embarcaciones</span>
+</div>
+<div class="app-body">
+<div class="tabs">
+  <button class="tab active" onclick="showTab('tripulacion',event)">Tripulación</button>
+  <button class="tab" onclick="showTab('flota',event)">Flota</button>
+  <button class="tab" onclick="showTab('analisis',event)">Análisis</button>
+  <button class="tab" onclick="showTab('comparar',event)">Comparar</button>
+</div>
+
+<!-- TRIPULACIÓN -->
+<div id="tab-tripulacion" class="panel active">
+  <div class="crew-layout">
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Configuración de horas</div>
+        <div class="config-row">
+          <label>Horas laborales por mes (para calcular costo/hora)</label>
+          <input type="number" id="horas-mes" value="200" min="1" oninput="recalcCrewRates()">
+          <span class="hint">h/mes</span>
+        </div>
+        <div style="font-size:12px;color:#888">Costo/hora = sueldo mensual ÷ horas por mes. Ej: $400.000 ÷ 200h = $2.000/hora.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          Lista de tripulantes
+          <button class="add-crew-btn" onclick="addCrew()">+ Agregar tripulante</button>
+        </div>
+        <div id="import-result"></div>
+        <div class="crew-table-wrap">
+          <table class="crew-table">
+            <thead><tr><th>Nombre</th><th>Sueldo mensual ($)</th><th>Tipo</th><th>Embarcación asignada</th><th>Costo / hora efectivo</th><th></th></tr></thead>
+            <tbody id="crew-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Importar desde Excel</div>
+        <div class="import-zone" id="import-zone" onclick="$('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <div class="iz-icon">📂</div>
+          <p>Arrastrá tu archivo Excel aquí</p>
+          <span>o hacé clic para seleccionar</span>
+          <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileInput(this)">
+        </div>
+        <button class="template-btn" onclick="downloadTemplate()">Descargar plantilla Excel de ejemplo</button>
+        <div style="margin-top:.75rem;font-size:12px;color:#888">Columnas: <strong>Nombre</strong>, <strong>Sueldo</strong>, <strong>Tipo</strong> (Regular / Franquero), <strong>Embarcacion</strong></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resumen por embarcación</div>
+        <div id="crew-summary"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOTA -->
+<div id="tab-flota" class="panel">
+  <div class="flota-layout">
+    <div>
+      <div class="vessel-list" id="vessel-list"></div>
+      <button class="add-btn" onclick="addVessel()">+ Agregar embarcación</button>
+    </div>
+    <div id="vessel-editor"></div>
+  </div>
+</div>
+
+<!-- ANÁLISIS -->
+<div id="tab-analisis" class="panel">
+  <div class="toolbar">
+    <div class="f"><label>Embarcación</label><select id="ana-vessel" onchange="populateTrips()"></select></div>
+    <div class="f"><label>Viaje</label><select id="ana-trip" onchange="renderAnalisis()"></select></div>
+    <button class="exp-btn" onclick="exportAnalisis()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/></svg>Exportar CSV
+    </button>
+  </div>
+  <div id="analisis-content"></div>
+</div>
+
+<!-- COMPARAR -->
+<div id="tab-comparar" class="panel">
+  <div class="toolbar">
+    <div class="f"><label>Tipo de servicio</label>
+      <select id="cmp-svc" onchange="renderComparar()">
+        <option value="all">Todos</option>
+        <option value="paseo">Paseo turístico</option>
+        <option value="charter">Charter privado</option>
+      </select>
+    </div>
+    <div class="f"><label>Ocupación</label>
+      <select id="cmp-occ" onchange="renderComparar()">
+        <option value="50">50%</option><option value="70">70%</option><option value="80" selected>80%</option><option value="100">100%</option>
+      </select>
+    </div>
+    <button class="exp-btn" onclick="exportComparar()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/></svg>Exportar CSV
+    </button>
+    <button class="exp-btn" onclick="exportFlota()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4h12v-4M8 2v8M5 7l3 3 3-3"/></svg>Exportar flota completa
+    </button>
+  </div>
+  <div id="comparar-content"></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>isNaN(n)||!isFinite(n)?'—':'$'+Math.round(n).toLocaleString('es-AR');
+const fmtN=n=>isNaN(n)||!isFinite(n)?'—':Math.round(n).toLocaleString('es-AR');
+const fmtPct=n=>isNaN(n)||!isFinite(n)?'—':Math.round(n)+'%';
+const raw=n=>isNaN(n)||!isFinite(n)?'':Math.round(n);
+const nv=v=>parseFloat(v)||0;
+
+let _uid=300;
+function uid(){return ++_uid;}
+function getHorasMes(){return nv($('horas-mes').value)||200;}
+
+// ---- CREW ----
+let crew=[];
+
+function crewHourlyRate(m){
+  const hm=getHorasMes();
+  if(m.tipo==='franquero'){
+    // Cost split evenly across all vessels
+    return m.sueldo/Math.max(1,vessels.length)/hm;
+  }
+  return m.sueldo/hm;
+}
+function tripCrewCost(trip){
+  const members=trip.crew_ids.map(cid=>crew.find(c=>c.id===cid)).filter(Boolean);
+  const ratePerHour=members.reduce((a,m)=>a+crewHourlyRate(m),0);
+  return{tripulacion:ratePerHour*nv(trip.duracion_hs),ratePerHour,members,count:members.length};
+}
+
+function recalcCrewRates(){renderCrewTable();renderCrewSummary();renderVesselEditor();}
+
+function renderCrewTable(){
+  const tbody=$('crew-tbody');if(!tbody)return;
+  const hm=getHorasMes();
+  if(!crew.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#aaa;padding:1.5rem;font-size:13px">Sin tripulantes. Agregá uno o importá desde Excel.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=crew.map(m=>{
+    const isFranq=m.tipo==='franquero';
+    const effectiveRate=crewHourlyRate(m);
+    const rateNote=isFranq?`$${Math.round(m.sueldo).toLocaleString('es-AR')} ÷ ${vessels.length} emb.`:'';
+    return`<tr class="${isFranq?'is-franquero':''}">
+      <td><input class="name-cell" value="${m.nombre}" oninput="updCrew(${m.id},'nombre',this.value)"></td>
+      <td><input class="num-cell" type="number" value="${m.sueldo}" oninput="updCrew(${m.id},'sueldo',this.value)"></td>
+      <td>
+        <select class="tipo-cell" onchange="updCrew(${m.id},'tipo',this.value)">
+          <option value="regular"${m.tipo!=='franquero'?' selected':''}>Regular</option>
+          <option value="franquero"${m.tipo==='franquero'?' selected':''}>Franquero</option>
+        </select>
+      </td>
+      <td>
+        ${isFranq
+          ? `<span class="badge-franquero">Todas las embarcaciones</span>`
+          : `<select class="vessel-cell" onchange="updCrew(${m.id},'vessel_id',this.value)">
+              <option value="">— Sin asignar —</option>
+              ${vessels.map(v=>`<option value="${v.id}"${m.vessel_id===v.id?' selected':''}>${v.name}</option>`).join('')}
+            </select>`
+        }
+      </td>
+      <td>
+        <span class="crew-rate">${fmt(effectiveRate)}/h</span>
+        ${isFranq?`<div style="font-size:10px;color:#92400e">${rateNote}</div>`:''}
+      </td>
+      <td><button class="del-crew" onclick="delCrew(${m.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCrewSummary(){
+  const zone=$('crew-summary');if(!zone)return;
+  const hm=getHorasMes();
+  const franqueros=crew.filter(c=>c.tipo==='franquero');
+  const franqCostPerVessel=franqueros.reduce((a,m)=>a+m.sueldo,0)/Math.max(1,vessels.length);
+  const franqRatePerVessel=franqCostPerVessel/hm;
+
+  let html=`<div class="vessel-crew-list">`;
+
+  // Franqueros block
+  if(franqueros.length){
+    html+=`<div class="vcrew-item" style="border:1px solid #fde68a;background:#fffbeb">
+      <div class="vcrew-name" style="color:#92400e">
+        Franqueros <span style="color:#a16207">(costo prorrateado entre ${vessels.length} embarcaciones)</span>
+      </div>
+      <div class="vcrew-members">
+        ${franqueros.map(m=>`<div class="vcrew-member">
+          <span>${m.nombre}</span>
+          <span>$${Math.round(m.sueldo).toLocaleString('es-AR')}/mes total</span>
+          <span class="rate" style="color:#92400e">${fmt(m.sueldo/Math.max(1,vessels.length)/hm)}/h por barco</span>
+        </div>`).join('')}
+      </div>
+      <div class="vcrew-total" style="border-color:#fde68a">
+        <span>Costo por embarcación/hora</span>
+        <span style="color:#92400e">${fmt(franqRatePerVessel)}/h</span>
+      </div>
+    </div>`;
+  }
+
+  // Per vessel
+  html+=vessels.map(v=>{
+    const members=crew.filter(c=>c.vessel_id===v.id&&c.tipo!=='franquero');
+    const regularRate=members.reduce((a,m)=>a+m.sueldo/hm,0);
+    const totalRate=regularRate+franqRatePerVessel;
+    return`<div class="vcrew-item">
+      <div class="vcrew-name">${v.name}<span>${v.cap} pax</span></div>
+      ${members.length?`
+        <div class="vcrew-members">${members.map(m=>`<div class="vcrew-member"><span>${m.nombre}</span><span>$${Math.round(m.sueldo).toLocaleString('es-AR')}/mes</span><span class="rate">${fmt(m.sueldo/hm)}/h</span></div>`).join('')}</div>
+      `:`<div class="vcrew-empty">Sin tripulantes propios</div>`}
+      ${franqueros.length?`<div style="font-size:11px;color:#92400e;margin-top:4px">+ Franqueros: ${fmt(franqRatePerVessel)}/h</div>`:''}
+      <div class="vcrew-total"><span>Costo total/hora (incl. franqueros)</span><span style="color:#1d4ed8">${fmt(totalRate)}/h</span></div>
+    </div>`;
+  }).join('');
+
+  html+=`</div>`;
+  zone.innerHTML=html;
+}
+
+function updCrew(id,key,val){
+  const m=crew.find(c=>c.id===id);if(!m)return;
+  if(key==='vessel_id')m.vessel_id=val?parseInt(val):null;
+  else if(key==='sueldo')m.sueldo=nv(val);
+  else if(key==='tipo'){m.tipo=val;if(val==='franquero')m.vessel_id=null;}
+  else m[key]=val;
+  renderCrewTable();renderCrewSummary();renderVesselEditor();
+}
+function addCrew(){
+  crew.push({id:uid(),nombre:'Nuevo tripulante',sueldo:300000,tipo:'regular',vessel_id:null});
+  renderCrewTable();renderCrewSummary();
+}
+function delCrew(id){
+  crew=crew.filter(c=>c.id!==id);
+  vessels.forEach(v=>v.trips.forEach(t=>{t.crew_ids=t.crew_ids.filter(cid=>cid!==id);}));
+  renderCrewTable();renderCrewSummary();renderVesselEditor();
+}
+
+// ---- EXCEL IMPORT ----
+function handleDrop(e){e.preventDefault();$('import-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)parseExcel(f);}
+function handleFileInput(input){const f=input.files[0];if(f)parseExcel(f);input.value='';}
+
+function parseExcel(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!data.length){showImportResult('El archivo está vacío','err');return;}
+      const keys=Object.keys(data[0]);
+      const findCol=(alts)=>keys.find(k=>alts.some(a=>k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(a)))||null;
+      const colN=findCol(['nombre','name','tripulante','empleado']);
+      const colS=findCol(['sueldo','salario','salary','monto','remuneracion']);
+      const colE=findCol(['embarcacion','embarcación','barco','vessel','nave']);
+      const colT=findCol(['tipo','role','rol','franquero']);
+      if(!colN||!colS){showImportResult('No se encontraron columnas requeridas (Nombre, Sueldo)','err');return;}
+      let added=0,updated=0,notFound=[];
+      data.forEach(row=>{
+        const nombre=String(row[colN]||'').trim();
+        const sueldo=nv(row[colS]);
+        if(!nombre||!sueldo)return;
+        // Detect tipo
+        let tipo='regular';
+        if(colT){
+          const tv=String(row[colT]||'').toLowerCase();
+          if(tv.includes('franq'))tipo='franquero';
+        }
+        let vessel_id=null;
+        if(tipo!=='franquero'&&colE){
+          const rn=String(row[colE]||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          const matched=vessels.find(v=>{
+            const vn=v.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+            return vn===rn||vn.includes(rn)||rn.includes(vn);
+          });
+          if(matched)vessel_id=matched.id;
+          else if(rn)notFound.push(String(row[colE]).trim());
+        }
+        const existing=crew.find(c=>c.nombre.toLowerCase()===nombre.toLowerCase());
+        if(existing){existing.sueldo=sueldo;existing.tipo=tipo;if(vessel_id)existing.vessel_id=vessel_id;updated++;}
+        else{crew.push({id:uid(),nombre,sueldo,tipo,vessel_id});added++;}
+      });
+      let msg=`Importado: ${added} nuevos, ${updated} actualizados.`;
+      if(notFound.length)msg+=` Embarcaciones no encontradas: ${[...new Set(notFound)].join(', ')}`;
+      showImportResult(msg,'ok');
+      renderCrewTable();renderCrewSummary();renderVesselEditor();
+    }catch(err){showImportResult('Error al leer el archivo: '+err.message,'err');}
+  };
+  reader.readAsBinaryString(file);
+}
+function showImportResult(msg,type){
+  const z=$('import-result');z.innerHTML=`<div class="import-result ${type}">${msg}</div>`;
+  setTimeout(()=>z.innerHTML='',6000);
+}
+function downloadTemplate(){
+  const wb=XLSX.utils.book_new();
+  const data=[
+    ['Nombre','Sueldo','Tipo','Embarcacion'],
+    ['Juan Pérez',350000,'Regular','FRANCISCO DE VIEDMA'],
+    ['María González',320000,'Regular','DELTACAT II'],
+    ['Carlos Rodríguez',310000,'Regular','HUGO STURLA'],
+    ['Pedro Supervisor',500000,'Franquero',''],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:25},{wch:15},{wch:12},{wch:25}];
+  XLSX.utils.book_append_sheet(wb,ws,'Tripulantes');
+  XLSX.writeFile(wb,'plantilla_tripulantes.xlsx');
+  toast('Plantilla descargada');
+}
+
+// ---- VESSELS — FLOTA REAL ----
+function defTrip(name,type){
+  return{
+    id:uid(),name:name||'Viaje nuevo',type:type||'paseo',
+    duracion_hs:2,km:30,
+    consumo_l_h:40,precio_combustible:800,
+    crew_ids:[],
+    amortizacion:15000,seguro:5000,tasas:3000,otros:2000,
+    cv_seguro_pax:800,cv_comision_pct:0,cv_impuestos_pax:0,
+    cv_bienvenida:300,cv_gastronomia:0,cv_otros:0,
+    ticket:8000,occ:80
+  };
+}
+
+const FLEET=[
+  {name:'FRANCISCO DE VIEDMA', cap:107},
+  {name:'DELTACAT II',          cap:164},
+  {name:'DON ANGEL',            cap:45},
+  {name:'HUGO STURLA',          cap:12},
+  {name:'HECTOR STURLA',        cap:88},
+  {name:'JL FONROUGE',          cap:68},
+  {name:'RED STAR',             cap:44},
+  {name:'SILVER STAR',          cap:52},
+  {name:'WHITE STAR',           cap:48},
+  {name:'CABURE',               cap:90},
+  {name:'MARIA EUGENIA',        cap:150},
+  {name:'RIO JET I',            cap:80},
+  {name:'RIO JET II',           cap:150},
+  {name:'BEILKE',               cap:80},
+  {name:'DELTACAT I',           cap:120},
+];
+
+let vessels=FLEET.map((f,i)=>({
+  id:i+1,
+  name:f.name,
+  cap:f.cap,
+  trips:[defTrip('Viaje 1','paseo')]
+}));
+let nextVid=FLEET.length+1;
+let selVid=1,selTid=vessels[0].trips[0].id;
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+function dlCSV(fn,rows){
+  const bom='\uFEFF';
+  const data=bom+rows.map(r=>r.map(c=>{const s=String(c==null?'':c);return/[,"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8;'}));a.download=fn;a.click();
+  toast('Descargado: '+fn);
+}
+
+function getV(id){return vessels.find(v=>v.id===id)||vessels[0];}
+function getT(v,tid){return v.trips.find(t=>t.id===tid)||v.trips[0];}
+
+// ---- COST CALCULATIONS ----
+function fixedCosts(v,trip){
+  const combustible=nv(trip.consumo_l_h)*nv(trip.duracion_hs)*nv(trip.precio_combustible);
+  const {tripulacion}=tripCrewCost(trip);
+  const amortizacion=nv(trip.amortizacion),seguro=nv(trip.seguro),tasas=nv(trip.tasas),otros=nv(trip.otros);
+  return{combustible,tripulacion,amortizacion,seguro,tasas,otros,cf:combustible+tripulacion+amortizacion+seguro+tasas+otros};
+}
+function varCosts(trip){
+  const seguro_pax=nv(trip.cv_seguro_pax);
+  const comision=nv(trip.ticket)*nv(trip.cv_comision_pct)/100;
+  const impuestos=nv(trip.cv_impuestos_pax);
+  const bienvenida=nv(trip.cv_bienvenida);
+  const gastronomia=nv(trip.cv_gastronomia);
+  const otros=nv(trip.cv_otros);
+  return{seguro_pax,comision,impuestos,bienvenida,gastronomia,otros,cv:seguro_pax+comision+impuestos+bienvenida+gastronomia+otros};
+}
+function calcTrip(v,trip){
+  const fc=fixedCosts(v,trip);const vc=varCosts(trip);
+  const cf=fc.cf,cv=vc.cv,tk=nv(trip.ticket),cap=nv(v.cap)||1;
+  const mg=tk-cv,beq=mg>0?Math.ceil(cf/mg):Infinity;
+  return{...fc,...vc,cf,cv,ticket:tk,cap,margin:mg,beq,beqPct:beq/cap*100,occ:nv(trip.occ)||80};
+}
+
+// ---- FLOTA CRUD ----
+function addVessel(){
+  const id=nextVid++;const t=defTrip('Viaje 1','paseo');
+  vessels.push({id,name:'Nueva embarcación',cap:50,trips:[t]});
+  selVid=id;selTid=t.id;renderAll();
+}
+function delVessel(id){
+  if(vessels.length<=1)return;
+  vessels=vessels.filter(v=>v.id!==id);
+  if(selVid===id){selVid=vessels[0].id;selTid=vessels[0].trips[0].id;}
+  renderAll();
+}
+function selVessel(id){selVid=id;const v=getV(id);selTid=v.trips[0]?v.trips[0].id:null;renderFlota();}
+function selTrip(tid){selTid=tid;renderTripEditor();}
+function addTrip(){
+  const v=getV(selVid);const t=defTrip('Viaje '+(v.trips.length+1),'paseo');
+  t.crew_ids=crew.filter(c=>c.vessel_id===v.id).map(c=>c.id);
+  v.trips.push(t);selTid=t.id;renderFlota();
+}
+function delTrip(tid){
+  const v=getV(selVid);if(v.trips.length<=1)return;
+  v.trips=v.trips.filter(t=>t.id!==tid);selTid=v.trips[0].id;renderFlota();
+}
+function updV(id,k,val){
+  const v=getV(id);k==='name'?v.name=val:v.cap=nv(val);
+  syncSelects();renderCrewTable();renderCrewSummary();
+}
+function updT(vid,tid,k,val){
+  const t=getT(getV(vid),tid);
+  if(k==='name')t.name=val;else if(k==='type')t.type=val;else t[k]=nv(val);
+  refreshComputed(vid,tid);
+  if($('tab-analisis').classList.contains('active'))renderAnalisis();
+  if($('tab-comparar').classList.contains('active'))renderComparar();
+}
+function toggleCrewOnTrip(vid,tid,cid,checked){
+  const t=getT(getV(vid),tid);
+  if(checked){if(!t.crew_ids.includes(cid))t.crew_ids.push(cid);}
+  else{t.crew_ids=t.crew_ids.filter(id=>id!==cid);}
+  refreshComputed(vid,tid);
+  if($('tab-analisis').classList.contains('active'))renderAnalisis();
+}
+
+function refreshComputed(vid,tid){
+  const v=getV(vid);const t=getT(v,tid);
+  const fc=fixedCosts(v,t);const vc=varCosts(t);const cc=tripCrewCost(t);
+  const el=(id,val)=>{const e=$(id);if(e)e.value=Math.round(val);};
+  el(`lit_${tid}`,t.consumo_l_h*t.duracion_hs);
+  el(`fcost_${tid}`,fc.combustible);
+  const tc=$(`tcost_${tid}`);if(tc){tc.value=Math.round(fc.tripulacion);const h=$(`tcost_hint_${tid}`);if(h)h.textContent=cc.count+' tripulantes × '+fmt(cc.ratePerHour)+'/h × '+t.duracion_hs+'h';}
+  const cvc=$(`cv_com_${tid}`);if(cvc){cvc.value=Math.round(vc.comision);const h=$(`cv_com_hint_${tid}`);if(h)h.textContent=t.cv_comision_pct+'% × $'+Math.round(t.ticket).toLocaleString('es-AR');}
+  el(`cv_tot_${tid}`,vc.cv);
+  const cvs=$(`cv_tot_strong_${tid}`);if(cvs)cvs.textContent=fmt(vc.cv)+'/pax';
+  const upd=(id,val)=>{const e=$(id);if(e)e.textContent=fmt(val);};
+  upd(`cvdir_tot_${tid}`,vc.seguro_pax+vc.impuestos);
+  upd(`cvcom_tot_${tid}`,vc.comision);
+  upd(`cvgas_tot_${tid}`,vc.bienvenida+vc.gastronomia+vc.otros);
+  const ca=$(`ca_total_${tid}`);if(ca)ca.textContent=fmt(fc.tripulacion)+' ('+cc.count+' tripulantes)';
+  renderBreakdown(vid,tid);
+  // refresh pill
+  document.querySelectorAll(`.trip-pill[data-tid="${tid}"] .tp-meta`).forEach(el=>{
+    el.textContent=`${t.duracion_hs}h · CF:${fmt(fc.cf)} · CV:${fmt(vc.cv)}/pax`;
+  });
+}
+
+function renderAll(){renderFlota();renderCrewTable();renderCrewSummary();syncSelects();}
+
+function renderFlota(){
+  $('vessel-list').innerHTML=vessels.map(v=>`
+    <div class="vessel-item${v.id===selVid?' selected':''}" onclick="selVessel(${v.id})">
+      <span>${v.name}<span class="vcap">${v.cap}p</span></span>
+      <button class="del" onclick="event.stopPropagation();delVessel(${v.id})">✕</button>
+    </div>`).join('');
+  renderVesselEditor();syncSelects();
+}
+
+function renderVesselEditor(){
+  const v=getV(selVid);const ed=$('vessel-editor');
+  if(!v){ed.innerHTML='<div class="empty">Seleccioná una embarcación</div>';return;}
+  ed.innerHTML=`
+  <div class="form-card">
+    <input class="name-input" value="${v.name}" oninput="updV(${v.id},'name',this.value)">
+    <div class="row" style="margin-bottom:1.25rem">
+      <div class="f"><label>Capacidad máx. (pax)</label><input type="number" value="${v.cap}" oninput="updV(${v.id},'cap',this.value)" min="1"></div>
+    </div>
+    <div class="sec">
+      <h3>Viajes configurados</h3>
+      <div class="trip-list">
+        ${v.trips.map(t=>{
+          const tfc=fixedCosts(v,t);const tvc=varCosts(t);
+          return`<div class="trip-pill${t.id===selTid?' selected':''}" onclick="selTrip(${t.id})" data-tid="${t.id}">
+            <span class="tp-name">${t.name}</span>
+            <span class="tp-meta">${t.duracion_hs}h · CF:${fmt(tfc.cf)} · CV:${fmt(tvc.cv)}/pax</span>
+            <button class="del-t" onclick="event.stopPropagation();delTrip(${t.id})">✕</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <button class="add-trip" onclick="addTrip()">+ Agregar viaje</button>
+    </div>
+    <div id="trip-editor-zone"></div>
+  </div>`;
+  renderTripEditor();
+}
+
+function renderTripEditor(){
+  const v=getV(selVid);const zone=$('trip-editor-zone');if(!zone)return;
+  const t=getT(v,selTid);if(!t){zone.innerHTML='';return;}
+  const fc=fixedCosts(v,t);const vc=varCosts(t);const cc=tripCrewCost(t);
+  const vesselCrew=crew.filter(c=>c.vessel_id===v.id&&c.tipo!=='franquero');
+  const franqueros=crew.filter(c=>c.tipo==='franquero');
+  const hm=getHorasMes();
+  zone.innerHTML=`
+  <div class="trip-editor">
+    <div class="te-head">
+      <input class="te-name" value="${t.name}" oninput="updT(${v.id},${t.id},'name',this.value)">
+      <select class="te-type" onchange="updT(${v.id},${t.id},'type',this.value)">
+        <option value="paseo"${t.type==='paseo'?' selected':''}>Paseo turístico</option>
+        <option value="charter"${t.type==='charter'?' selected':''}>Charter privado</option>
+      </select>
+    </div>
+    <div class="sec">
+      <h3>Parámetros operativos</h3>
+      <div class="row">
+        <div class="f"><label>Duración (horas)</label><input type="number" value="${t.duracion_hs}" step="0.5" min="0.5" oninput="updT(${v.id},${t.id},'duracion_hs',this.value)"></div>
+        <div class="f"><label>Distancia (km)</label><input type="number" value="${t.km}" min="0" oninput="updT(${v.id},${t.id},'km',this.value)"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Combustible <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">&nbsp;consumo × precio × horas</span></h3>
+      <div class="row">
+        <div class="f"><label>Consumo (litros/hora)</label><input type="number" value="${t.consumo_l_h}" min="0" oninput="updT(${v.id},${t.id},'consumo_l_h',this.value)"></div>
+        <div class="f"><label>Precio combustible ($/litro)</label><input type="number" value="${t.precio_combustible}" min="0" oninput="updT(${v.id},${t.id},'precio_combustible',this.value)"></div>
+        <div class="f"><label>Litros totales</label><input type="number" class="computed" readonly value="${Math.round(t.consumo_l_h*t.duracion_hs)}" id="lit_${t.id}"><span class="hint blue">${t.consumo_l_h}l/h × ${t.duracion_hs}h</span></div>
+        <div class="f"><label>Costo combustible</label><input type="number" class="computed" readonly value="${Math.round(fc.combustible)}" id="fcost_${t.id}"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Tripulación del viaje</h3>
+      <div class="crew-assign-box">
+        <div class="crew-assign-title">Tripulantes asignados<span class="ca-total" id="ca_total_${t.id}">${fmt(fc.tripulacion)} (${cc.count} tripulantes)</span></div>
+        ${vesselCrew.length||franqueros.length?`
+          <div class="crew-check-list">
+            ${vesselCrew.map(m=>`
+              <div class="crew-check-item">
+                <input type="checkbox" ${t.crew_ids.includes(m.id)?'checked':''} onchange="toggleCrewOnTrip(${v.id},${t.id},${m.id},this.checked)">
+                <span class="cc-name">${m.nombre}</span>
+                <span class="cc-rate">${fmt(crewHourlyRate(m))}/h · ${fmt(crewHourlyRate(m)*nv(t.duracion_hs))} en ${t.duracion_hs}h</span>
+              </div>`).join('')}
+            ${franqueros.length?`
+              <div style="font-size:11px;color:#92400e;margin:6px 0 4px;font-weight:500;text-transform:uppercase;letter-spacing:.03em">Franqueros (prorrateados)</div>
+              ${franqueros.map(m=>`
+                <div class="crew-check-item">
+                  <input type="checkbox" ${t.crew_ids.includes(m.id)?'checked':''} onchange="toggleCrewOnTrip(${v.id},${t.id},${m.id},this.checked)">
+                  <span class="cc-name">${m.nombre} <span class="badge-franquero" style="font-size:10px">franquero</span></span>
+                  <span class="cc-rate" style="color:#92400e">${fmt(crewHourlyRate(m))}/h · ${fmt(crewHourlyRate(m)*nv(t.duracion_hs))} en ${t.duracion_hs}h</span>
+                </div>`).join('')}
+              <div class="franquero-note">Su sueldo ($${franqueros.reduce((a,m)=>a+m.sueldo,0).toLocaleString('es-AR')}) se divide entre ${vessels.length} embarcaciones → $${Math.round(franqueros.reduce((a,m)=>a+m.sueldo,0)/vessels.length).toLocaleString('es-AR')}/mes por barco</div>
+            `:''}
+          </div>
+          <div class="crew-assign-note">Costo tripulación = suma tarifas/hora × duración del viaje</div>
+          <div class="row" style="margin-top:.75rem">
+            <div class="f"><label>Costo tripulación total</label>
+              <input type="number" class="computed" readonly value="${Math.round(fc.tripulacion)}" id="tcost_${t.id}">
+              <span class="hint blue" id="tcost_hint_${t.id}">${cc.count} pers × ${fmt(cc.ratePerHour)}/h × ${t.duracion_hs}h</span>
+            </div>
+          </div>
+        `:`<div class="crew-assign-empty">Sin tripulantes asignados a esta embarcación. Asignalos en la solapa Tripulación.</div>`}
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Costos fijos adicionales</h3>
+      <div class="row">
+        <div class="f"><label>Amortización / mant.</label><input type="number" value="${t.amortizacion}" oninput="updT(${v.id},${t.id},'amortizacion',this.value)"></div>
+        <div class="f"><label>Seguro (embarcación)</label><input type="number" value="${t.seguro}" oninput="updT(${v.id},${t.id},'seguro',this.value)"></div>
+        <div class="f"><label>Tasas portuarias</label><input type="number" value="${t.tasas}" oninput="updT(${v.id},${t.id},'tasas',this.value)"></div>
+        <div class="f"><label>Otros fijos</label><input type="number" value="${t.otros}" oninput="updT(${v.id},${t.id},'otros',this.value)"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Costos variables por pasajero <span class="sec-total">Total: <strong id="cv_tot_strong_${t.id}">${fmt(vc.cv)}</strong>/pax</span></h3>
+      <div class="cv-subsec">
+        <div class="cv-subsec-title">Directos por pasajero<span class="subtotal" id="cvdir_tot_${t.id}">${fmt(vc.seguro_pax+vc.impuestos)}</span></div>
+        <div class="row">
+          <div class="f"><label>Seguro por pasajero ($)</label><input type="number" value="${t.cv_seguro_pax}" min="0" oninput="updT(${v.id},${t.id},'cv_seguro_pax',this.value)"><span class="hint">Se activa solo si embarca</span></div>
+          <div class="f"><label>Impuestos / tasa por pax ($)</label><input type="number" value="${t.cv_impuestos_pax}" min="0" oninput="updT(${v.id},${t.id},'cv_impuestos_pax',this.value)"></div>
+        </div>
+      </div>
+      <div class="cv-subsec">
+        <div class="cv-subsec-title">Comisiones de venta<span class="subtotal" id="cvcom_tot_${t.id}">${fmt(vc.comision)}</span></div>
+        <div class="row">
+          <div class="f"><label>Comisión canal de venta (%)</label><input type="number" value="${t.cv_comision_pct}" min="0" max="100" step="0.5" oninput="updT(${v.id},${t.id},'cv_comision_pct',this.value)"><span class="hint">OTAs: 15–25% · Directo: 0%</span></div>
+          <div class="f"><label>Comisión calculada ($/pax)</label><input type="number" class="cv-computed" readonly value="${Math.round(vc.comision)}" id="cv_com_${t.id}"><span class="hint green" id="cv_com_hint_${t.id}">${t.cv_comision_pct}% × $${Math.round(t.ticket).toLocaleString('es-AR')}</span></div>
+        </div>
+      </div>
+      <div class="cv-subsec">
+        <div class="cv-subsec-title">Bienvenida y gastronomía<span class="subtotal" id="cvgas_tot_${t.id}">${fmt(vc.bienvenida+vc.gastronomia+vc.otros)}</span></div>
+        <div class="row">
+          <div class="f"><label>Kit bienvenida / pax ($)</label><input type="number" value="${t.cv_bienvenida}" min="0" oninput="updT(${v.id},${t.id},'cv_bienvenida',this.value)"><span class="hint">Agua, folleto, souvenir</span></div>
+          <div class="f"><label>Catering / gastronomía ($)</label><input type="number" value="${t.cv_gastronomia}" min="0" oninput="updT(${v.id},${t.id},'cv_gastronomia',this.value)"></div>
+          <div class="f"><label>Otros variables / pax ($)</label><input type="number" value="${t.cv_otros}" min="0" oninput="updT(${v.id},${t.id},'cv_otros',this.value)"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:.5rem">
+        <div class="f"><label>TOTAL costo variable / pax</label><input type="number" class="cv-computed" readonly value="${Math.round(vc.cv)}" id="cv_tot_${t.id}"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Precio y ocupación</h3>
+      <div class="row">
+        <div class="f"><label>Precio del ticket / pax ($)</label><input type="number" value="${t.ticket}" oninput="updT(${v.id},${t.id},'ticket',this.value)"></div>
+        <div class="f"><label>Ocupación típica (%)</label><input type="number" value="${t.occ}" min="1" max="100" oninput="updT(${v.id},${t.id},'occ',this.value)"></div>
+      </div>
+    </div>
+    <div id="breakdown_${t.id}"></div>
+  </div>`;
+  renderBreakdown(v.id,t.id);
+}
+
+function renderBreakdown(vid,tid){
+  const v=getV(vid);const t=getT(v,tid);
+  const fc=fixedCosts(v,t);const vc=varCosts(t);const cc=tripCrewCost(t);
+  const zone=$(`breakdown_${tid}`);if(!zone)return;
+  zone.innerHTML=`
+  <div class="breakdown">
+    <div class="breakdown-title">Resumen completo de costos del viaje</div>
+    <div class="bk-row" style="font-size:11px;color:#aaa;padding-bottom:4px;border-bottom:1px solid #eee"><span>COSTOS FIJOS</span></div>
+    <div class="bk-row"><span class="bk-label">Combustible</span><span class="bk-formula">${t.consumo_l_h}l/h × $${t.precio_combustible} × ${t.duracion_hs}h</span><span class="bk-val">${fmt(fc.combustible)}</span></div>
+    <div class="bk-row"><span class="bk-label">Tripulación (${cc.count} pers.)</span><span class="bk-formula">${fmt(cc.ratePerHour)}/h × ${t.duracion_hs}h</span><span class="bk-val">${fmt(fc.tripulacion)}</span></div>
+    <div class="bk-row"><span class="bk-label">Amortización / mant.</span><span class="bk-formula"></span><span class="bk-val">${fmt(fc.amortizacion)}</span></div>
+    <div class="bk-row"><span class="bk-label">Seguro embarcación</span><span class="bk-formula"></span><span class="bk-val">${fmt(fc.seguro)}</span></div>
+    <div class="bk-row"><span class="bk-label">Tasas portuarias</span><span class="bk-formula"></span><span class="bk-val">${fmt(fc.tasas)}</span></div>
+    <div class="bk-row"><span class="bk-label">Otros fijos</span><span class="bk-formula"></span><span class="bk-val">${fmt(fc.otros)}</span></div>
+    <div class="bk-row cf-total"><span class="bk-label">TOTAL COSTOS FIJOS</span><span class="bk-formula"></span><span class="bk-val">${fmt(fc.cf)}</span></div>
+    <div class="bk-row" style="font-size:11px;color:#aaa;padding-top:12px;padding-bottom:4px;border-top:1px solid #ddd;margin-top:4px"><span>COSTOS VARIABLES / PAX</span></div>
+    <div class="bk-row cv-sub"><span class="bk-label">Seguro por pasajero</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.seguro_pax)}</span></div>
+    <div class="bk-row cv-sub"><span class="bk-label">Comisión canal (${t.cv_comision_pct}%)</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.comision)}</span></div>
+    <div class="bk-row cv-sub"><span class="bk-label">Impuestos / tasa embarco</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.impuestos)}</span></div>
+    <div class="bk-row cv-sub"><span class="bk-label">Kit bienvenida</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.bienvenida)}</span></div>
+    <div class="bk-row cv-sub"><span class="bk-label">Gastronomía / catering</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.gastronomia)}</span></div>
+    <div class="bk-row cv-sub"><span class="bk-label">Otros variables</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.otros)}</span></div>
+    <div class="bk-row cv-total"><span class="bk-label">TOTAL CV / PAX</span><span class="bk-formula"></span><span class="bk-val">${fmt(vc.cv)}</span></div>
+  </div>`;
+}
+
+// ---- SELECTS ----
+function syncSelects(){
+  const av=$('ana-vessel');if(!av)return;
+  const cur=av.value;
+  av.innerHTML=vessels.map(v=>`<option value="${v.id}">${v.name} (${v.cap}p)</option>`).join('');
+  if(vessels.find(v=>v.id==cur))av.value=cur;
+}
+function populateTrips(){
+  const vid=parseInt($('ana-vessel').value)||vessels[0].id;
+  const v=getV(vid);
+  const at=$('ana-trip');
+  at.innerHTML=v.trips.map(t=>`<option value="${t.id}">${t.name}  (${t.duracion_hs}h · ${t.km}km)</option>`).join('');
+  renderAnalisis();
+}
+
+// ---- ANÁLISIS ----
+function renderAnalisis(){
+  const vid=parseInt($('ana-vessel').value)||vessels[0].id;
+  const tid=parseFloat($('ana-trip').value)||0;
+  const v=getV(vid);const trip=tid?getT(v,tid):v.trips[0];
+  if(!trip){$('analisis-content').innerHTML='<div class="empty">Sin viajes configurados</div>';return;}
+  const c=calcTrip(v,trip);const cc=tripCrewCost(trip);
+  const sl=$('ana-occ-val');
+  const occ=sl?parseInt(sl.value):Math.round(c.occ);
+  const pax=Math.max(1,Math.round(v.cap*occ/100));
+  const cpax=c.cf/pax+c.cv,mg=c.ticket-cpax,res=(c.ticket-c.cv)*pax-c.cf;
+  const rows=[25,50,60,70,75,80,90,100].map(p=>{
+    const nn=Math.max(1,Math.round(v.cap*p/100)),cp=c.cf/nn+c.cv;
+    return{p,n:nn,cp,mg:c.ticket-cp,res:(c.ticket-c.cv)*nn-c.cf,eq:Math.abs(p-Math.round(c.beqPct))<=5,sel:p===occ};
+  });
+  const bc=c.beqPct<=60?'go':c.beqPct<=80?'wa':'ba';
+  const mc=mg>0?'go':mg===0?'wa':'ba';
+  $('analisis-content').innerHTML=`
+  <div class="insight">Viaje: <span>${trip.duracion_hs}h / ${trip.km}km</span> · Combustible: <span>${fmt(c.combustible)}</span> · Tripulación: <span>${fmt(c.tripulacion)} (${cc.count} pers.)</span> · CF total: <span>${fmt(c.cf)}</span></div>
+  <div class="insight">CV/pax: Seguro <span>${fmt(c.seguro_pax)}</span> · Comisión <span>${fmt(c.comision)}</span> · Bienvenida <span>${fmt(c.bienvenida)}</span> · Gastro <span>${fmt(c.gastronomia)}</span> = <span>${fmt(c.cv)}/pax</span></div>
+  <div class="insight">Ingreso marginal por pasajero extra (sobre equilibrio): <span>${fmt(c.margin)}</span></div>
+  <div class="slider-row">
+    <label>Ocupación</label>
+    <input type="range" min="1" max="100" step="1" value="${occ}" id="ana-occ-val"
+      oninput="this.nextElementSibling.textContent=this.value+'%  ('+Math.round(${v.cap}*this.value/100)+' pax)';liveAna(${vid},${trip.id},this.value)">
+    <span class="val">${occ}%&nbsp;&nbsp;(${pax} pax)</span>
+  </div>
+  <div class="metric-grid">
+    <div class="metric"><div class="label">CF total / viaje</div><div class="value">${fmt(c.cf)}</div></div>
+    <div class="metric"><div class="label">CV total / pax</div><div class="value">${fmt(c.cv)}</div></div>
+    <div class="metric" id="m-cp"><div class="label">Costo total / pax (${occ}%)</div><div class="value">${fmt(cpax)}</div></div>
+    <div class="metric ${mc}" id="m-mg"><div class="label">Margen / pax</div><div class="value">${fmt(mg)}</div></div>
+    <div class="metric ${bc}"><div class="label">Punto de equilibrio</div><div class="value">${fmtN(c.beq)} pax</div></div>
+    <div class="metric ${bc}"><div class="label">Equilibrio (% capacidad)</div><div class="value">${fmtPct(c.beqPct)}</div></div>
+    <div class="metric ${mg>0?'go':'ba'}" id="m-res"><div class="label">Resultado del viaje</div><div class="value">${fmt(res)}</div></div>
+    <div class="metric hi"><div class="label">Ingreso marginal / pax extra</div><div class="value">${fmt(c.margin)}</div></div>
+  </div>
+  <div class="sec-title">Sensibilidad por nivel de ocupación</div>
+  <table class="sens-table">
+    <thead><tr><th>Ocupación</th><th>Pax</th><th>Costo / pax</th><th>Margen / pax</th><th>Resultado viaje</th></tr></thead>
+    <tbody id="stb">${rows.map(r=>`<tr class="${r.eq?'eq':r.sel?'sl':''}"><td>${r.p}%</td><td>${r.n}</td><td>${fmt(r.cp)}</td><td>${fmt(r.mg)}</td><td>${fmt(r.res)}</td></tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function liveAna(vid,tid,occ){
+  const v=getV(vid);const trip=getT(v,tid);const c=calcTrip(v,trip);
+  const pax=Math.max(1,Math.round(v.cap*occ/100));
+  const cpax=c.cf/pax+c.cv,mg=c.ticket-cpax,mc=mg>0?'go':mg===0?'wa':'ba';
+  const mcp=$('m-cp');if(mcp){mcp.querySelector('.label').textContent='Costo total / pax ('+occ+'%)';mcp.querySelector('.value').textContent=fmt(cpax);}
+  const mmg=$('m-mg');if(mmg){mmg.className='metric '+mc;mmg.querySelector('.value').textContent=fmt(mg);}
+  const mres=$('m-res');if(mres){mres.className='metric '+(mg>0?'go':'ba');mres.querySelector('.value').textContent=fmt((c.ticket-c.cv)*pax-c.cf);}
+  const tb=$('stb');
+  if(tb)tb.innerHTML=[25,50,60,70,75,80,90,100].map(p=>{
+    const nn=Math.max(1,Math.round(v.cap*p/100)),cp=c.cf/nn+c.cv;
+    return`<tr class="${Math.abs(p-Math.round(c.beqPct))<=5?'eq':p==occ?'sl':''}"><td>${p}%</td><td>${nn}</td><td>${fmt(cp)}</td><td>${fmt(c.ticket-cp)}</td><td>${fmt((c.ticket-c.cv)*nn-c.cf)}</td></tr>`;
+  }).join('');
+}
+
+// ---- COMPARAR ----
+function renderComparar(){
+  const sf=$('cmp-svc').value,occ=parseInt($('cmp-occ').value)||80;
+  const rows=[];
+  vessels.forEach(v=>v.trips.forEach(trip=>{
+    if(sf!=='all'&&trip.type!==sf)return;
+    const c=calcTrip(v,trip);const cc=tripCrewCost(trip);
+    const pax=Math.max(1,Math.round(v.cap*occ/100));
+    const cpax=c.cf/pax+c.cv,mg=c.ticket-cpax;
+    rows.push({v,trip,c,cc,cpax,mg,res:(c.ticket-c.cv)*pax-c.cf,
+      bb:c.beqPct<=60?'bg':c.beqPct<=80?'bw':'bb',
+      mb:mg>0?'bg':mg===0?'bw':'bb'});
+  }));
+  if(!rows.length){$('comparar-content').innerHTML='<div class="empty">Sin viajes para mostrar</div>';return;}
+  $('comparar-content').innerHTML=`<div style="overflow-x:auto"><table class="cmp-table">
+    <thead><tr><th>Embarcación</th><th>Viaje</th><th>Cap.</th><th>Dur.</th><th>Tripulantes</th><th>CF</th><th>CV/pax</th><th>Ticket</th><th>Equilibrio</th><th>Costo/pax @${occ}%</th><th>Margen/pax</th><th>Resultado</th><th>Ing. marg.</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td>${r.v.name}</td><td>${r.trip.name}</td><td>${r.v.cap}</td><td>${r.trip.duracion_hs}h</td>
+      <td style="font-size:11px">${r.cc.members.map(m=>m.nombre).join(', ')||'—'}</td>
+      <td>${fmt(r.c.cf)}</td><td>${fmt(r.c.cv)}</td><td>${fmt(r.c.ticket)}</td>
+      <td><span class="badge ${r.bb}">${fmtN(r.c.beq)} pax (${fmtPct(r.c.beqPct)})</span></td>
+      <td>${fmt(r.cpax)}</td>
+      <td><span class="badge ${r.mb}">${fmt(r.mg)}</span></td>
+      <td>${fmt(r.res)}</td><td>${fmt(r.c.margin)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ---- EXPORT ----
+function exportAnalisis(){
+  const vid=parseInt($('ana-vessel').value)||vessels[0].id;
+  const tid=parseFloat($('ana-trip').value)||0;
+  const v=getV(vid);const trip=tid?getT(v,tid):v.trips[0];if(!trip)return;
+  const c=calcTrip(v,trip);const cc=tripCrewCost(trip);
+  dlCSV((v.name+'_'+trip.name).replace(/\s+/g,'_')+'.csv',[
+    ['Reporte — '+v.name+' — '+trip.name],['Fecha',new Date().toLocaleDateString('es-AR')],[],
+    ['PARÁMETROS OPERATIVOS'],['Duración (h)',trip.duracion_hs],['Distancia (km)',trip.km],
+    ['Consumo (l/h)',trip.consumo_l_h],['Precio comb. ($/l)',trip.precio_combustible],
+    ['Tripulantes en el viaje',cc.members.map(m=>m.nombre).join(', ')],
+    ['Costo/hora tripulación total',raw(cc.ratePerHour)],[],
+    ['COSTOS FIJOS'],['Combustible',raw(c.combustible)],['Tripulación',raw(c.tripulacion)],
+    ['Amortización',raw(c.amortizacion)],['Seguro barco',raw(c.seguro)],
+    ['Tasas',raw(c.tasas)],['Otros fijos',raw(c.otros)],['TOTAL CF',raw(c.cf)],[],
+    ['COSTOS VARIABLES / PAX'],['Seguro por pasajero',raw(c.seguro_pax)],
+    ['Comisión canal ('+trip.cv_comision_pct+'%)',raw(c.comision)],
+    ['Impuestos/tasa',raw(c.impuestos)],['Kit bienvenida',raw(c.bienvenida)],
+    ['Gastronomía',raw(c.gastronomia)],['Otros variables',raw(c.otros)],
+    ['TOTAL CV/PAX',raw(c.cv)],[],
+    ['Ticket',raw(c.ticket)],['Ingreso marginal',raw(c.margin)],['Capacidad',v.cap],[],
+    ['SENSIBILIDAD'],['Ocup.%','Pax','Costo/pax','Margen/pax','Resultado'],
+    ...[25,50,60,70,75,80,90,100].map(p=>{const nn=Math.max(1,Math.round(v.cap*p/100)),cp=c.cf/nn+c.cv;return[p+'%',nn,raw(cp),raw(c.ticket-cp),raw((c.ticket-c.cv)*nn-c.cf)];})
+  ]);
+}
+function exportComparar(){
+  const sf=$('cmp-svc').value,occ=parseInt($('cmp-occ').value)||80;
+  const hdr=['Embarcación','Viaje','Tipo','Cap.','Dur.(h)','Tripulantes','CF total','CV/pax','Ticket','Equil. pax','Equil.%','Costo/pax @'+occ+'%','Margen/pax','Resultado','Ing. marginal'];
+  const data=[];
+  vessels.forEach(v=>v.trips.forEach(trip=>{
+    if(sf!=='all'&&trip.type!==sf)return;
+    const c=calcTrip(v,trip);const cc=tripCrewCost(trip);
+    const pax=Math.max(1,Math.round(v.cap*occ/100));const cpax=c.cf/pax+c.cv;
+    data.push([v.name,trip.name,trip.type==='paseo'?'Paseo':'Charter',v.cap,trip.duracion_hs,cc.members.map(m=>m.nombre).join('; '),raw(c.cf),raw(c.cv),raw(c.ticket),raw(c.beq),raw(c.beqPct)+'%',raw(cpax),raw(c.ticket-cpax),raw((c.ticket-c.cv)*pax-c.cf),raw(c.margin)]);
+  }));
+  dlCSV('comparativa_viajes.csv',[['Comparativa'],['Fecha',new Date().toLocaleDateString('es-AR')],[],hdr,...data]);
+}
+function exportFlota(){
+  const hdr=['Embarcación','Cap.','Viaje','Tipo','Dur.(h)','km','Tripulantes','CF total','CV/pax','Ticket','Ocup.%','Equil. pax','Equil.%','Costo/pax','Margen/pax','Ing. marginal'];
+  const rows=[['Flota completa — Sturla Viajes'],['Fecha',new Date().toLocaleDateString('es-AR')],[],hdr];
+  vessels.forEach(v=>v.trips.forEach(trip=>{
+    const c=calcTrip(v,trip);const cc=tripCrewCost(trip);
+    const pax=Math.max(1,Math.round(v.cap*(trip.occ||80)/100));const cpax=c.cf/pax+c.cv;
+    rows.push([v.name,v.cap,trip.name,trip.type==='paseo'?'Paseo':'Charter',trip.duracion_hs,trip.km,cc.members.map(m=>m.nombre).join('; '),raw(c.cf),raw(c.cv),raw(trip.ticket),trip.occ||80,raw(c.beq),raw(c.beqPct)+'%',raw(cpax),raw(c.ticket-cpax),raw(c.margin)]);
+  }));
+  dlCSV('flota_sturla.csv',rows);
+}
+
+function showTab(t,e){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  $('tab-'+t).classList.add('active');
+  if(e&&e.target)e.target.classList.add('active');
+  if(t==='tripulacion'){renderCrewTable();renderCrewSummary();}
+  if(t==='flota')renderFlota();
+  if(t==='analisis'){syncSelects();populateTrips();}
+  if(t==='comparar')renderComparar();
+}
+
+// Init
+renderCrewTable();
+renderCrewSummary();
+renderFlota();
+syncSelects();
+</script>
+</body>
+</html>
